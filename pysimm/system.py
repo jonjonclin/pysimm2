@@ -1836,6 +1836,8 @@ class System(object):
                             id_, x, y, z = map(float, line)
                         elif len(line) == 5:
                             id_, type_, x, y, z = map(float, line)
+                        elif len(line) == 6:
+                            id_, mol_, type_, x, y, z = map(float, line)
                         elif len(line) == 8:
                             id_, type_, x, y, z, ix, iy, iz = map(float, line)
                         else:
@@ -3101,7 +3103,254 @@ class System(object):
             return s
         else:
             out_file.close()
-            
+
+    def write_lammps_types(self, out_data, **kwargs):
+        """pysimm.system.System.write_lammps_types
+
+        Write :class:`~pysimm.system.System` data formatted for LAMMPS with types labels
+
+        Args:
+            out_data: where to write data, file name or 'string'
+
+        Returns:
+            None or string if data file if out_data='string'
+        """
+        empty = kwargs.get('empty')
+        pair_style = kwargs.get('pair_style', self.pair_style)
+        bond_style = kwargs.get('bond_style', self.bond_style)
+        angle_style = kwargs.get('angle_style', self.angle_style)
+        dihedral_style = kwargs.get('dihedral_style', self.dihedral_style)
+        improper_style = kwargs.get('improper_style', self.improper_style)
+
+        if out_data == 'string':
+            out_file = StringIO()
+        else:
+            out_file = open(out_data, 'w+')
+
+        if empty:
+            out_file.write('%s\n\n' % self.name)
+            out_file.write('%s atoms\n' % 0)
+            out_file.write('%s bonds\n' % 0)
+            out_file.write('%s angles\n' % 0)
+            out_file.write('%s dihedrals\n' % 0)
+            out_file.write('%s impropers\n' % 0)
+        else:
+            out_file.write('%s\n\n' % self.name)
+            out_file.write('%s atoms\n' % self.particles.count)
+            out_file.write('%s bonds\n' % self.bonds.count)
+            out_file.write('%s angles\n' % self.angles.count)
+            out_file.write('%s dihedrals\n' % self.dihedrals.count)
+            out_file.write('%s impropers\n' % self.impropers.count)
+
+        out_file.write('\n')
+
+        out_file.write('%s atom types\n' % self.particle_types.count)
+        if self.bond_types.count > 0:
+            out_file.write('%s bond types\n' % self.bond_types.count)
+        if self.angle_types.count > 0:
+            out_file.write('%s angle types\n' % self.angle_types.count)
+        if self.dihedral_types.count > 0:
+            out_file.write('%s dihedral types\n' % self.dihedral_types.count)
+        if self.improper_types.count > 0:
+            out_file.write('%s improper types\n' % self.improper_types.count)
+
+        out_file.write('\n')
+
+        out_file.write('%f %f xlo xhi\n' % (self.dim.xlo, self.dim.xhi))
+        out_file.write('%f %f ylo yhi\n' % (self.dim.ylo, self.dim.yhi))
+        out_file.write('%f %f zlo zhi\n' % (self.dim.zlo, self.dim.zhi))
+
+        out_file.write('\n')
+
+        if self.particle_types.count > 0:
+            out_file.write('Atom Type Labels\n\n')
+            for pt in self.particle_types:
+                out_file.write(f'{pt.tag:4}\t {pt.name}\n')
+            out_file.write('\n')
+
+        if self.write_coeffs and self.bond_types.count > 0:
+            out_file.write('Bond Type Labels\n\n')
+            for b in self.bond_types:
+                out_file.write(f'{b.tag:4}\t {b.name.replace(",","-")}\n')
+            out_file.write('\n')
+
+        if self.write_coeffs and self.angle_types.count > 0:
+            out_file.write('Angle Type Labels\n\n')
+            for a in self.angle_types:
+                out_file.write(f'{a.tag:4}\t {a.name.replace(",","-")}\n')
+            out_file.write('\n')
+
+        if self.write_coeffs and (self.angle_types.count > 0 and (self.ff_class == '2' or
+                                            angle_style == 'class2')):
+            out_file.write('BondBond Type Labels\n\n')
+            for a in self.angle_types:
+                out_file.write(f'{a.tag:4}\t {a.name.replace(",","-")}\n')
+            out_file.write('\n')
+            out_file.write('BondAngle Type Labels\n\n')
+            for a in self.angle_types:
+                out_file.write(f'{a.tag:4}\t {a.name.replace(",","-")}\n')
+            out_file.write('\n')
+
+        if self.write_coeffs and self.dihedral_types.count > 0:
+            out_file.write('Dihedral Type Labels\n\n')
+            for dt in self.dihedral_types:
+                out_file.write(f'{dt.tag:4}\t {dt.name.replace(",","-")}\n')
+            out_file.write('\n')
+
+        if self.write_coeffs and self.improper_types.count > 0:
+            out_file.write('Improper Type Labels\n\n')
+            for i in self.improper_types:
+                out_file.write(f'{i.tag:4}\t {i.name.replace(",","-")}\n')
+            out_file.write('\n')
+
+        if self.particle_types.count > 0:
+            out_file.write('Masses\n\n')
+            for pt in self.particle_types:
+                out_file.write(pt.write_lammps('mass'))
+            out_file.write('\n')
+
+        if self.write_coeffs and self.particle_types.count > 0:
+            out_file.write('Pair Coeffs\n\n')
+            for pt in self.particle_types:
+                out_file.write(pt.write_lammps(pair_style))
+            out_file.write('\n')
+
+        if self.write_coeffs and self.bond_types.count > 0:
+            out_file.write('Bond Coeffs\n\n')
+            for b in self.bond_types:
+                out_file.write(b.write_lammps(bond_style))
+            out_file.write('\n')
+
+        if self.write_coeffs and self.angle_types.count > 0:
+            out_file.write('Angle Coeffs\n\n')
+            for a in self.angle_types:
+                out_file.write(a.write_lammps(angle_style))
+            out_file.write('\n')
+
+        if self.write_coeffs and (self.angle_types.count > 0 and (self.ff_class == '2' or
+                                            angle_style == 'class2')):
+            out_file.write('BondBond Coeffs\n\n')
+            for a in self.angle_types:
+                out_file.write(a.write_lammps(angle_style, cross_term='BondBond'))
+            out_file.write('\n')
+            out_file.write('BondAngle Coeffs\n\n')
+            for a in self.angle_types:
+                out_file.write(a.write_lammps(angle_style, cross_term='BondAngle'))
+            out_file.write('\n')
+
+        if self.write_coeffs and self.dihedral_types.count > 0:
+            out_file.write('Dihedral Coeffs\n\n')
+            for dt in self.dihedral_types:
+                out_file.write(dt.write_lammps(dihedral_style))
+            out_file.write('\n')
+
+        if self.write_coeffs and self.dihedral_types.count > 0 and (self.ff_class == '2' or
+                                        dihedral_style == 'class2'):
+            out_file.write('MiddleBondTorsion Coeffs\n\n')
+            for d in self.dihedral_types:
+                out_file.write(d.write_lammps(dihedral_style, cross_term='MiddleBond'))
+            out_file.write('\n')
+            out_file.write('EndBondTorsion Coeffs\n\n')
+            for d in self.dihedral_types:
+                out_file.write(d.write_lammps(dihedral_style, cross_term='EndBond'))
+            out_file.write('\n')
+            out_file.write('AngleTorsion Coeffs\n\n')
+            for d in self.dihedral_types:
+                out_file.write(d.write_lammps(dihedral_style, cross_term='Angle'))
+            out_file.write('\n')
+            out_file.write('AngleAngleTorsion Coeffs\n\n')
+            for d in self.dihedral_types:
+                out_file.write(d.write_lammps(dihedral_style, cross_term='AngleAngle'))
+            out_file.write('\n')
+            out_file.write('BondBond13 Coeffs\n\n')
+            for d in self.dihedral_types:
+                out_file.write(d.write_lammps(dihedral_style, cross_term='BondBond13'))
+            out_file.write('\n')
+
+        if self.write_coeffs and self.improper_types.count > 0:
+            out_file.write('Improper Coeffs\n\n')
+            for i in self.improper_types:
+                out_file.write(i.write_lammps(improper_style))
+            out_file.write('\n')
+
+        if self.write_coeffs and self.improper_types.count > 0 and (self.ff_class == '2' or
+                                              improper_style == 'class2'):
+            out_file.write('AngleAngle Coeffs\n\n')
+            for i in self.improper_types:
+                out_file.write(i.write_lammps(improper_style, cross_term='AngleAngle'))
+            out_file.write('\n')
+
+        if self.particles.count > 0 and not empty:
+            out_file.write('Atoms\n\n')
+            for p in self.particles:
+                if not p.molecule:
+                    p.molecule = Item()
+                    p.molecule.tag = 1
+                if not p.charge:
+                    p.charge = 0
+                if isinstance(p.molecule, int):
+                    out_file.write('%4d\t%d\t%d\t%s\t%s\t%s\t%s\n'
+                                   % (p.tag, p.molecule, p.type.tag, p.charge,
+                                      p.x, p.y, p.z))
+                else:
+                    out_file.write('%4d\t%d\t%d\t%s\t%s\t%s\t%s\n'
+                                   % (p.tag, p.molecule.tag, p.type.tag, p.charge,
+                                      p.x, p.y, p.z))
+            out_file.write('\n')
+
+            out_file.write('Velocities\n\n')
+            for p in self.particles:
+                if not p.vx:
+                    p.vx = 0.
+                if not p.vy:
+                    p.vy = 0.
+                if not p.vz:
+                    p.vz = 0.
+                out_file.write('%4d\t%s\t%s\t%s\n' % (p.tag, p.vx, p.vy, p.vz))
+            out_file.write('\n')
+
+        if self.bonds.count > 0 and not empty:
+            out_file.write('Bonds\n\n')
+            for b in self.bonds:
+                out_file.write('%4d\t%d\t%d\t%d\n'
+                               % (b.tag, b.type.tag, b.a.tag, b.b.tag))
+            out_file.write('\n')
+
+        if self.angles.count > 0 and not empty:
+            out_file.write('Angles\n\n')
+            for a in self.angles:
+                out_file.write('%4d\t%d\t%d\t%d\t%d\n'
+                               % (a.tag, a.type.tag, a.a.tag, a.b.tag, a.c.tag))
+            out_file.write('\n')
+
+        if self.dihedrals.count > 0 and not empty:
+            out_file.write('Dihedrals\n\n')
+            for d in self.dihedrals:
+                out_file.write('%4d\t%d\t%d\t%d\t%d\t%d\n'
+                               % (d.tag, d.type.tag,
+                                  d.a.tag, d.b.tag, d.c.tag, d.d.tag))
+            out_file.write('\n')
+
+        if self.impropers.count > 0 and not empty:
+            out_file.write('Impropers\n\n')
+            for i in self.impropers:
+                if self.ff_class == '2' or self.improper_style == 'class2':
+                    out_file.write('%4d\t%d\t%d\t%d\t%d\t%d\n'
+                                   % (i.tag, i.type.tag,
+                                      i.b.tag, i.a.tag, i.c.tag, i.d.tag))
+                else:
+                    out_file.write('%4d\t%d\t%d\t%d\t%d\t%d\n'
+                                   % (i.tag, i.type.tag,
+                                      i.a.tag, i.b.tag, i.c.tag, i.d.tag))
+            out_file.write('\n')
+
+        if out_data == 'string':
+            s = out_file.getvalue()
+            out_file.close()
+            return s
+        else:
+            out_file.close()
+
     def write_xyz(self, outfile='data.xyz', **kwargs):
         """pysimm.system.System.write_xyz
 
