@@ -63,7 +63,7 @@ class Gaff(Forcefield):
         self.improper_style = 'cvff'
         self.ff_class = '1'
 
-    def assign_ptypes(self, s):
+    def assign_ptypes(self, s, use_typenames=False):
         """pysimm.forcefield.Gaff.assign_ptypes
 
         Gaff specific particle typing rules.
@@ -74,6 +74,7 @@ class Gaff(Forcefield):
 
         Args:
             s: :class:`~pysimm.system.System`
+            use_typenames: If True, use existing Particle.type_name values to assign types. Default False
 
         Returns:
             None

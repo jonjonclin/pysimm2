@@ -66,7 +66,7 @@ class Pcff(Forcefield):
         self.improper_style = 'class2'
         self.nb_mixing = 'sixth'
 
-    def assign_ptypes(self, s):
+    def assign_ptypes(self, s, use_typenames=False):
         """pysimm.forcefield.Pcff.assign_ptypes
 
         Pcff specific particle typing rules.
@@ -75,6 +75,7 @@ class Pcff(Forcefield):
 
         Args:
             s: :class:`~pysimm.system.System`
+            use_typenames: If True, use existing Particle.type_name values to assign types. Default False
 
         Returns:
             None
@@ -90,7 +91,9 @@ class Pcff(Forcefield):
             if p.linker:
                 p.nbonds += 1
         for p in s.particles:
-            if p.elem == 'H':
+            if p.type_name and use_typenames:
+                pass
+            elif p.elem == 'H':
                 if ('C' in p.bond_elements or 'Si' in p.bond_elements or
                         'H' in p.bond_elements or 'S' in p.bond_elements):
                     p.type_name = 'h'

@@ -2766,7 +2766,7 @@ class System(object):
             print(p.tag, p.type.name, p.type.elem, p.type.desc, p.bond_elements)
 
     def apply_forcefield(self, f, charges='default', set_box=True, box_padding=10,
-                         update_ptypes=False, skip_ptypes=False):
+                         update_ptypes=False, skip_ptypes=False, use_typenames=False):
         """pysimm.system.System.apply_forcefield
 
         Applies force field data to :class:`~pysimm.system.System` based on typing rules defined in :class:`~pysimm.forcefield.Forcefield` object f
@@ -2776,7 +2776,7 @@ class System(object):
             charges: type of charges to be applied default='default'
             set_box: Update simulation box information based on particle positions default=True
             box_padding: Add padding to simulation box if updating dimensions default=10 (Angstroms)
-            update_ptypes: If True, update particle types based on current :class:`~pysimm.system.ParticleType` names default=False
+            update_ptypes: For adjusting linker_types. If True, update particle types based on current :class:`~pysimm.system.ParticleType` names default=False
             skip_ptypes: if True, do not change particle types
 
         Returns:
@@ -2787,6 +2787,9 @@ class System(object):
         self.forcefield = f.name
         if update_ptypes:
             self.update_particle_types_from_forcefield(f)
+            skip_ptypes = True
+        if use_typenames:
+            f.assign_ptypes(self, use_typenames=True)
             skip_ptypes = True
         if not skip_ptypes:
             f.assign_ptypes(self)

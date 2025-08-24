@@ -67,7 +67,7 @@ class Gaff2(Forcefield):
         self.improper_style = 'cvff'
         self.ff_class = '1'
 
-    def assign_ptypes(self, s):
+    def assign_ptypes(self, s, use_typenames=False):
         """pysimm.forcefield.Gaff2.assign_ptypes
 
         Gaff2 specific particle typing rules.
@@ -78,6 +78,7 @@ class Gaff2(Forcefield):
 
         Args:
             s: :class:`~pysimm.system.System`
+            use_typenames: If True, use existing Particle.type_name values to assign types. Default False
 
         Returns:
             None
@@ -94,8 +95,11 @@ class Gaff2(Forcefield):
             p.nbonds = len(p.bond_elements)
             if p.linker:
                 p.nbonds += 1
+
         for p in s.particles:
-            if p.elem == 'H':
+            if p.type_name and use_typenames:
+                pass
+            elif p.elem == 'H':
                 if 'O' in p.bond_elements:
                     water = False
                     for pb in p.bonded_to:
