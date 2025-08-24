@@ -56,7 +56,7 @@ class Gaff2(Forcefield):
                 os.path.dirname(
                     os.path.realpath(__file__)
                 ),
-                os.pardir, 'data', 'forcefields', 'gaff2.json'
+                os.pardir, 'data', 'forcefields', 'gaff221.json'
             )
         Forcefield.__init__(self, db_file)
         self.name = 'gaff2'
